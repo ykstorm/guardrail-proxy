@@ -1,0 +1,64 @@
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+1. Definitions.
+
+"License" shall mean the terms and conditions for use, reproduction,
+and distribution as defined by this document.
+
+"Licensor" shall mean the copyright owner or entity authorized by
+the copyright owner that is granting the License.
+
+"Object Form" shall mean any form resulting from mechanical transformation
+or translation of a Source Form, including but not limited to compiled
+object code, generated documentation, and conversions to other media types.
+
+"Work" shall mean the work of authorship, whether in Source or Object Form,
+made available under the License.
+
+"You" shall mean an individual or Legal Entity exercising permissions
+granted by this License.
+
+2. Grant of Copyright License.
+
+Subject to the terms and conditions of this License, You are granted a
+non-exclusive, royalty-free, worldwide, non-sublicensable, irrevocable
+copyright license to reproduce, prepare derivative works of, publicly
+display, publicly perform, sublicense, and distribute the Work and such
+derivative works in Object Form.
+
+3. Grant of Patent License.
+
+Each Contributor grants You a non-exclusive, worldwide, royalty-free patent
+license under Licensed Patents to make, have made, use, sell, offer to sell,
+import, and otherwise transfer the Work.
+
+4. Redistribution.
+
+You may reproduce and distribute copies of the Work or derivative works
+thereof in any medium, with or without modifications, provided that You
+meet the following conditions:
+(a) You must give any other recipients of the Work a copy of this License.
+(b) You must cause any modified files to carry prominent notices stating
+    that You changed the files.
+(c) You must retain, in the Source form of any derivative works that You
+    distribute, all copyright notices from the Source form of the Work.
+
+5. Disclaimer.
+
+THE WORK IS PROVIDED "AS IS" WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+6. Limitation of Liability.
+
+IN NO EVENT SHALL ANY CONTRIBUTOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING BUT NOT LIMITED TO PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS WORK, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

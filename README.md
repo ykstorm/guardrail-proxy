@@ -1,3 +1,7 @@
+[![npm version](https://img.shields.io/npm/v/@ykstorm/guardrail-proxy)](https://npmjs.com/package/@ykstorm/guardrail-proxy)
+[![Test Status](https://github.com/ykstorm/guardrail-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/guardrail-proxy/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 # guardrail-proxy
 
 **Real-time safety layer for streaming LLM responses.**  
