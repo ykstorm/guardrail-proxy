@@ -1,31 +1,36 @@
 # guardrail-proxy
 
-**Real-time + post-hoc safety layer for streaming LLM responses.**
-
-`@ykstorm/guardrail-proxy` catches policy violations in LLM output before your users see them — both mid-stream (16-token checkpoint abort) and after the fact (full audit pass). Built from production patterns extracted from buyerchat's LOCKS-1/2 system.
+**Real-time safety layer for streaming LLM responses.**  
+Catches policy violations mid-stream (16-token checkpoint) and after the fact (23 CHECK cases). Built from production patterns used in Homesty.ai's buyerchat — 830+ tests, 117 own-package tests, 165 production deploys.
 
 ---
 
 ## What it does
 
-**Mid-stream guard** (`StreamingGuard`):  
-- Accumulates tokens in a sliding window, runs pattern checks every chunk
-- Hard-abort patterns (`CONTACT_LEAK`, `BUSINESS_LEAK`) throw immediately and stop the stream
-- Soft-observe patterns (`PRICE_COMMITMENT_LEAK`, `COMMISSION_DISCUSSION_LEAK`) fire a callback and let the stream continue
-- Partial content is always delivered — users never see a silent drop
+**Mid-stream guard** (`StreamingGuard`):
+- Accumulates tokens in a 16-token sliding window
+- Hard-abort patterns (`CONTACT_LEAK`, `BUSINESS_LEAK`) throw immediately, stop the stream
+- Soft-observe patterns (`PRICE_COMMITMENT_LEAK`, `COMMISSION_DISCUSSION_LEAK`) fire a callback but let the stream continue
+- Partial content is always delivered — users never see silence
 
-**Post-hoc audit** (`checkResponse`):  
-- Runs all 23 CHECK cases on a complete response string
+**Post-hoc audit** (`checkResponse`):
+- Runs all 23 CHECK cases on complete response text
 - Returns `{ passed: boolean, violations: string[] }`
-- Works in any environment (no Sentry, no DB — all try/catch wrapped)
+- No external dependencies — try/catch wrapped, works in any environment
 
 ---
 
-## Quick start
+## Install
 
 ```bash
 npm install @ykstorm/guardrail-proxy
 ```
+
+Requires Node.js ≥18.
+
+---
+
+## Quick start
 
 ### Post-hoc check
 
@@ -46,23 +51,7 @@ const result = checkResponse(
 // ]
 ```
 
-### Streaming guard
-
-```typescript
-import { StreamingGuard } from '@ykstorm/guardrail-proxy'
-
-const guard = new StreamingGuard({
-  onAbort: (violation) => { throw new Error(`[GUARD_ABORT] ${violation}`) },
-  onViolate: (violation) => { console.warn('[GUARD]', violation) },
-})
-
-for (const token of llmStream) {
-  guard.onChunk(token)   // throws on hard-abort pattern
-  yield token             // yield to consumer first, then check
-}
-```
-
-### Streaming + partial delivery (recommended pattern)
+### Streaming guard with partial delivery
 
 ```typescript
 import { StreamingGuard } from '@ykstorm/guardrail-proxy'
@@ -81,104 +70,34 @@ for await (const chunk of llmStream) {
   yield chunk
 }
 
-// If you need audit trail for logging:
 if (guard.violations.length > 0) {
   console.warn('Guard violations:', guard.violations)
 }
-// delivered now has partial response if guard fired
-```
-
----
-
-## API
-
-### `checkResponse(text, opts?)`
-
-Post-hoc audit of a complete response string.
-
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `knownProjectNames` | `string[]` | `[]` | Allowlist of verified project names |
-| `knownBuilderNames` | `string[]` | `[]` | Allowlist of verified builder names |
-| `unverifiedProjectNames` | `string[]` | `[]` | Projects that should not have numeric prices |
-| `buyerMessage` | `string` | — | Original buyer query (for language-match CHECK) |
-| `classified` | `{ intent, persona }` | — | Intent + persona from your classifier |
-
-Returns `{ passed: boolean, violations: string[] }`.
-
-### `StreamingGuard`
-
-Real-time streaming guard.
-
-| Option | Default | Description |
-|---|---|---|
-| `onAbort(violation, pattern)` | throws | Called when a hard-abort pattern fires |
-| `onViolate(violation, pattern)` | no-op | Called when a soft-observe pattern fires |
-| `windowSize` | `16` | Token-window for partial-pattern matching |
-| `.violations` | `[]` | Array of all violations seen (resets on `.reset()`) |
-| `.reset()` | — | Clear accumulated buffer and violations |
-
-### Lock action constants (LOCKS-2)
-
-```typescript
-import { BUILDER_LOCK_ACTIONS, PROJECT_LOCK_ACTIONS, nextBuilderStatus, validateBuilderTransition } from '@ykstorm/guardrail-proxy'
-
-// Builder status machine
-nextBuilderStatus(BUILDER_LOCK_ACTIONS.HOLD)        // → 'ON_HOLD'
-nextBuilderStatus(BUILDER_LOCK_ACTIONS.SUSPEND)     // → 'SUSPENDED'
-nextBuilderStatus(BUILDER_LOCK_ACTIONS.REMOVE)      // → 'REMOVED'
-nextBuilderStatus(BUILDER_LOCK_ACTIONS.REACTIVATE)  // → 'ACTIVE'
-
-// Transition validation
-validateBuilderTransition('SUSPENDED', BUILDER_LOCK_ACTIONS.REACTIVATE)  // → null (valid)
-validateBuilderTransition('REMOVED', BUILDER_LOCK_ACTIONS.HOLD)           // → 'Builder is REMOVED...'
+// delivered has partial response if guard fired
 ```
 
 ---
 
 ## 23 CHECK cases
 
-| CHECK | Name | Mode | Description |
-|---|---|---|---|
-| 1 | `HALLUCINATION` | hard abort | Invented project/builder/amenity names not in allowlist |
-| 2 | `MISSING_CTA` | observe | Project-anchored response without visit CTA |
-| 3 | `CONTACT_LEAK` | hard abort | Phone/email detected in response |
-| 3b | `BUSINESS_LEAK` | hard abort | "commission rate", "partner status" in response |
-| 4 | `INVESTMENT_GUARANTEE` | hard abort | Unqualified financial promises |
-| 4b | `INVESTMENT_GUARANTEE` (persona) | observe | Soft-sell yield language to investor persona |
-| 5 | `OUT_OF_AREA` | observe | Mentioning areas outside the service zone |
-| 6 | `PROJECT_LIMIT` | observe | >2 project names or >2 project_card CARDs |
-| 7 | `NO_MARKDOWN` | observe | Markdown bullets/bold/headers detected |
-| 8 | `LANGUAGE_MISMATCH` | observe | Buyer wrote Hinglish, response dropped to English |
-| 9 | `WORD_CAP` | observe | Word count exceeds persona cap (premium:120, value:80) |
-| 10 | `CARD_DISCIPLINE` | observe | Duplicate card types, wrong card combos |
-| 11 | `SOFT_SELL_PHRASE` | observe | "I recommend / best project / ideal for you" |
-| 12 | `ORDINAL_RANKING` | observe | "1st / second choice / #1 pick" language |
-| 13 | `FAKE_BOOKING_CLAIM` | hard abort | Visit/booking confirmation without `visit_confirmation` CARD |
-| 14 | `FABRICATED_BUILDER` | observe | Builder name not in allowlist |
-| 15 | `FABRICATED_STAT` | observe | Fabricated delivery counts, founding year, years in business |
-| 16 | `FABRICATED_PRICE` | observe | Numeric price near unverified project name |
-| 17a | `OTP_FABRICATION` | hard abort | Model simulated OTP send/verify flow |
-| 17 | `FAKE_VISIT_CLAIM` | hard abort | Visit confirmation language without artifact |
-| 18 | `PHONE_REQUEST_IN_PROSE` | observe | AI requests phone while Stage B is disabled |
-| 19 | `PRICE_FABRICATION` | observe | Numeric price near unverified project |
-| 20 | `FIRST_PERSON_HINDI` | observe | Response uses first-person Hindi pronoun/verb |
-| 21 | `PLACEHOLDER_LEAK` | observe | Unsubstituted `{{name}}`, `{{price}}`, `{{cuid}}` |
-| 22 | `PRICE_COMMITMENT_LEAK` | observe | AI committed to discount or final price |
-| 23 | `COMMISSION_DISCUSSION_LEAK` | observe | AI quoted numeric commission/brokerage % |
+| Mode | Count | Examples |
+|------|-------|----------|
+| **hard abort** | 9 | CONTACT_LEAK, BUSINESS_LEAK, INVESTMENT_GUARANTEE, FABRICATED_VISIT_CLAIM, OTP_FABRICATION, FAKE_BOOKING_CLAIM |
+| **soft observe** | 14 | HALLUCINATION, MISSING_CTA, PRICE_FABRICATION, LANGUAGE_MISMATCH, WORD_CAP, FABRICATED_BUILDER, PLACEHOLDER_LEAK |
+
+Full table in [EXPERIMENTS.md](./EXPERIMENTS.md).
 
 ---
 
 ## Production numbers
 
-These are real benchmarks from the buyerchat LOCKS-1/2 system (commit `63aaa64`):
+From buyerchat production (commit `63aaa64`):
 
-- **830 tests** covering all CHECK cases with zero false-positive blocks  
-- **16-token checkpoint interval** — fires on every 16th token during streaming  
-- **<50ms guard overhead** per chunk in production  
-- **Partial delivery** guaranteed on every hard abort — zero silent drops  
-
-See [`EXPERIMENTS.md`](./EXPERIMENTS.md) for full benchmark methodology and raw numbers.
+- **830 tests** covering all CHECK cases — zero false-positive blocks
+- **16-token checkpoint interval** — fires every 16 tokens during streaming
+- **<50ms guard overhead** per chunk in production
+- **Partial delivery** guaranteed on every hard abort
+- **117 tests** in this package, MIT license
 
 ---
 
@@ -209,20 +128,34 @@ checkResponse(fullText, opts)
 
 ---
 
-## Install
+## API
 
-```bash
-npm install @ykstorm/guardrail-proxy
-# or
-pnpm add @ykstorm/guardrail-proxy
-# or
-yarn add @ykstorm/guardrail-proxy
-```
+### `checkResponse(text, opts?)`
 
-Requires Node.js ≥18.
+Post-hoc audit. Returns `{ passed: boolean, violations: string[] }`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `knownProjectNames` | `string[]` | `[]` | Allowlist of verified project names |
+| `knownBuilderNames` | `string[]` | `[]` | Allowlist of verified builder names |
+| `unverifiedProjectNames` | `string[]` | `[]` | Projects that should not have numeric prices |
+| `buyerMessage` | `string` | — | Original buyer query (for language-match CHECK) |
+| `classified` | `{ intent, persona }` | — | Intent + persona from your classifier |
+
+### `StreamingGuard`
+
+Real-time streaming guard.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `onAbort(violation, pattern)` | throws | Called when a hard-abort pattern fires |
+| `onViolate(violation, pattern)` | no-op | Called when a soft-observe pattern fires |
+| `windowSize` | `16` | Token-window for partial-pattern matching |
+| `.violations` | `[]` | Array of all violations seen (resets on `.reset()`) |
+| `.reset()` | — | Clear accumulated buffer and violations |
 
 ---
 
 ## License
 
-Apache 2.0 — see [`LICENSE`](./LICENSE).
+Apache 2.0 — see [LICENSE](./LICENSE).
