@@ -1,6 +1,6 @@
 [![npm version](https://img.shields.io/npm/v/@ykstorm/guardrail-proxy)](https://npmjs.com/package/@ykstorm/guardrail-proxy)
 [![Test Status](https://github.com/ykstorm/guardrail-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/ykstorm/guardrail-proxy/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 # guardrail-proxy
 
@@ -162,4 +162,10 @@ Real-time streaming guard.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).
+
+## About
+
+**Lakshyaraj Singh Rao** — Founding Engineer · AI Systems · Full-Stack · Jaipur → Bangalore + Mumbai + Remote
+
+Portfolio: lakshyaraj.dev (coming) · GitHub: [@ykstorm](https://github.com/ykstorm) · LinkedIn: [/in/lakshyaraj](https://linkedin.com/in/lakshyaraj) · Email: raolakshyaraj@gmail.com
